@@ -1,0 +1,43 @@
+{
+  "name": "knockout-sync",
+  "version": "0.1.0",
+  "description": "A small backend using knockout mapping to sync entities with a RESTful Backend",
+  "main": "Gruntfile.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webforge-labs/knockout-sync"
+  },
+  "keywords": [
+    "backend",
+    "knockout",
+    "mapping",
+    "sync"
+  ],
+  "author": "Philipp Scheit <p.scheit@ps-webforge.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/webforge-labs/knockout-sync/issues"
+  },
+  "homepage": "https://github.com/webforge-labs/knockout-sync",
+  "devDependencies": {
+    "chai": "~1.9.0",
+    "grunt-simple-mocha": "~0.4.0",
+    "lodash": "~2.4.1",
+    "grunt-shimney-sweeper": "~1.2.3",
+    "grunt": "~0.4.2",
+    "matchdep": "~0.3.0",
+    "requirejs": "~2.1.10"
+  },
+  "dependencies": {
+    "shimney-lodash": "~2.2.1",
+    "shimney-knockout": "~3.0.0",
+    "shimney-knockout-mapping": "~2.4.1",
+    "shimney-json": "~1.0.0"
+  }
+}
