@@ -161,4 +161,24 @@ describe('EntityManager', function() {
       });
     });
   });
+
+  it("can attach an object by key", function() {
+    var ross = new UserModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+
+    expect(em.find('ACME.Blog.Entities.User', 7)).to.not.exist;
+
+    em.attach(ross);
+
+    expect(em.find('ACME.Blog.Entities.User', 7), 'find user 7').to.be.eql(ross);
+  });
+
+  it("does not attach the same object twice", function() {
+    var ross = new UserModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+
+    expect(em.findAll('ACME.Blog.Entities.User')).to.have.length(0);
+    em.attach(ross);
+    em.attach(ross);
+
+    expect(em.findAll('ACME.Blog.Entities.User'), 'all users').to.have.length(1);
+  });
 });

@@ -1,4 +1,4 @@
-define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'], function(Exception, EntityModel, _, ko, koMapping) {
+define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping', 'Amplify'], function(Exception, EntityModel, _, ko, koMapping, amplify) {
 
   /**
 
@@ -28,11 +28,20 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     this.meta = {};
     this.entities = {};
 
-    // initialize empty collections
-    _.each(that.model.getEntities(), function(entityMeta) {
-      that.meta[entityMeta.fqn] = entityMeta;
-      that.entities[entityMeta.plural] = ko.observableArray([]);
-    });
+
+    this.init = function() {
+
+      var firstFakeResponse = {};
+
+      // initialize empty collections
+      // the ko.observableArray([]) has not the mapped* functions (like mappedRemove), when it is not mapped yet, so we do the first mapping by hand with empty collections
+      _.each(that.model.getEntities(), function(entityMeta) {
+        that.meta[entityMeta.fqn] = entityMeta;
+        firstFakeResponse[entityMeta.plural] = [];
+      });
+
+      this.mapResponse(firstFakeResponse);
+    };
 
     /**
      * Syncs all Entities that are in the response as objects
@@ -207,5 +216,15 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     this.onHydrate = function(listener) {
       that.hydrateListeners.push(listener);
     };
+
+    this.attach = function(entity) {
+      var entityMeta = that.getEntityMeta(entity.fqn);
+      var mappedArray = that.entities[entityMeta.plural];
+
+      mappedArray.mappedRemove(entity);
+      mappedArray.push(entity);
+    };
+
+    this.init();
   };
 });
