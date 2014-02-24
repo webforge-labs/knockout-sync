@@ -1,5 +1,18 @@
 define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, EntityModel, amplify) {
 
+  /**
+   Events:
+
+   
+   knockout-sync.entity-saved
+     triggered when an entity with an existing id was saved again
+     args: [entity, entityMeta]
+
+   knockout-sync.entity-created 
+     triggered when an new entity without an id was saved. the entity has the new id applied
+     args: [entity, entityMeta]
+ */
+
   return function Backend(driver, entityModel) {
     var that = this;
 
@@ -27,9 +40,22 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
       }
 
       that.driver.dispatch(method, url, that.serializeEntity(entity), function(error, result) {
-        if (!error && !entity.id() && result.id) { // get persisted id
+        if (error) throw error;
+
+        var data;
+        if (result.id) {
+          data = result;
+        } else if (result[entityMeta.singular] && result[entityMeta.singular].id) {
+          data = result[entityMeta.singular];
+        } else {
+          throw "driver did returned an valid result set for a saved entity";
+        }
+
+        if (!entity.id()) { // set persisted id
           entity.id(result.id);
-          amplify.publish('new-entity', entity, entityMeta);
+          amplify.publish('knockout-sync.entity-created', entity, entityMeta);
+        } else {
+          amplify.publish('knockout-sync.entity-saved', entity, entityMeta);
         }
       });
     };

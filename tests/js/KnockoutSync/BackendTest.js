@@ -19,6 +19,7 @@ var UserModel = requirejs('ACME/Blog/Entities/UserModel');
 var EntityModel = requirejs('KnockoutSync/EntityModel');
 var AjaxDriver = function() {
 };
+var amplify = requirejs('Amplify');
 
 describe('Yield Deploy Backend', function() {
   var backend, driver, model;
@@ -60,8 +61,17 @@ describe('Yield Deploy Backend', function() {
       callback(undefined, data);
     };
 
+    var published = false;
+    amplify.subscribe('knockout-sync.entity-created', function(eventEntity, eventEntityMeta) {
+      published = true;
+      expect(eventEntity).to.be.equal(user);
+      expect(eventEntity.id(), 'event user.id').to.be.equal(7);
+      expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+    });
+
     backend.save(user);
     expect(dispatched, 'dispatch is called').to.be.true;
+    expect(published, 'publishe is called').to.be.true;
 
     expect(user.id(), 'user.id').to.be.equal(7);
   });
@@ -80,8 +90,16 @@ describe('Yield Deploy Backend', function() {
       callback(undefined, data);
     };
 
+    var published = false;
+    amplify.subscribe('knockout-sync.entity-saved', function(eventEntity, eventEntityMeta) {
+      published = true;
+      expect(eventEntity).to.be.eql(user);
+      expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+    });
+
     backend.save(user);
     expect(dispatched, 'dispatch is called').to.be.true;
+    expect(published, 'published is called').to.be.true;
     expect(user.id(), 'user.id').to.be.equal(7);
   });
 
