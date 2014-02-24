@@ -17,9 +17,8 @@ define(['require', 'lodash'], function(require, _) {
       return model.namespace.replace(/\\/g, '.');
     };
 
-
     that.meta = {};
-    _.each(jsonModel.entities, function(entityMeta) {
+    _.each(model.entities, function(entityMeta) {
       entityMeta.name = entityMeta.name.replace(/\\/g, '.');
 
       entityMeta.fqn = entityMeta.fqn.replace(/\\/g, '.');

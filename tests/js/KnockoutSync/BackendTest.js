@@ -57,7 +57,7 @@ describe('Yield Deploy Backend', function() {
 
       data.id = 7;
 
-      callback(data);
+      callback(undefined, data);
     };
 
     backend.save(user);
@@ -77,11 +77,35 @@ describe('Yield Deploy Backend', function() {
       expect(url, 'url').to.be.equal('/api/user/7');
       expect(data, 'data').to.be.eql(user.serialize());
 
-      callback(data);
+      callback(undefined, data);
     };
 
     backend.save(user);
     expect(dispatched, 'dispatch is called').to.be.true;
     expect(user.id(), 'user.id').to.be.equal(7);
+  });
+
+  it("queries a collection of entities", function() {
+    var dispatched = false;
+
+    var user1 = new UserModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+    var user2 = new UserModel({name: 'Rachel', email: 'rachel@ps-webforge.net', id: 8});
+    var result = { 'users': [user1.serialize, user2.serialize()] };
+
+    driver.dispatch = function(method, url, data, callback) {
+      dispatched = true;
+      expect(method, 'method').to.be.equal('GET');
+      expect(url, 'url').to.be.equal('/api/users');
+      expect(data, 'data').to.be.eql(undefined);
+
+      callback(undefined, result);
+    };
+
+    backend.cget('ACME.Blog.Entities.User', function(error, returnedResult) {
+      expect(error).to.be.not.existing;
+      expect(dispatched, 'driver did dispatch the request').to.be.true;
+      expect(returnedResult, 'result').to.be.equal(result);
+    });
+
   });
 });

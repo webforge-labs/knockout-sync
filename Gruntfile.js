@@ -93,6 +93,12 @@ module.exports = function(grunt) {
       },
 
       all: { src: ['tests/js/**/*.js'] }
+    },
+
+    release: {
+      options: {
+        npmtag: 'canary',
+      }
     }
   });
 

@@ -1,4 +1,4 @@
-define(['knockout-mapping', './EntityModel'], function(koMapping, EntityModel) {
+define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, EntityModel, amplify) {
 
   return function Backend(driver, entityModel) {
     var that = this;
@@ -18,7 +18,7 @@ define(['knockout-mapping', './EntityModel'], function(koMapping, EntityModel) {
       var method, url;
       var entityMeta = that.model.getEntityMeta(entity.fqn);
 
-      if (entity.id && entity.id() > 0) {
+      if (entity.id() > 0) {
         method = 'put';
         url = '/api/'+entityMeta.singular+'/'+entity.id();
       } else {
@@ -26,14 +26,26 @@ define(['knockout-mapping', './EntityModel'], function(koMapping, EntityModel) {
         url = '/api/'+entityMeta.plural;
       }
 
-      that.driver.dispatch(method, url, that.serialize(entity), function(result) {
-        if (!entity.id() && result.id) { // get persisted id
+      that.driver.dispatch(method, url, that.serializeEntity(entity), function(error, result) {
+        if (!error && !entity.id() && result.id) { // get persisted id
           entity.id(result.id);
+          amplify.publish('new-entity', entity, entityMeta);
         }
       });
     };
 
-    this.serialize = function(entity) {
+    /**
+     * Queries a collection of all entities returned by backend
+     */
+    this.cget = function(entityFQN, callback) {
+      var entityMeta = that.model.getEntityMeta(entityFQN);
+
+      that.driver.dispatch('GET', '/api/'+entityMeta.plural, undefined, function(error, result) {
+        callback(undefined, result);
+      });
+    };
+
+    this.serializeEntity = function(entity) {
       if (typeof(entity.serialize) === 'function') {
         return entity.serialize();
       }
