@@ -69,10 +69,14 @@ describe('Yield Deploy Backend', function() {
       expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
     });
 
-    backend.save(user);
+    var saveCalled = false;
+    backend.save(user, function(error) {
+      saveCalled = true;
+      expect(error).to.not.exist;
+    });
     expect(dispatched, 'dispatch is called').to.be.true;
     expect(published, 'publishe is called').to.be.true;
-
+    expect(saveCalled, 'save callback was called').to.be.true;
     expect(user.id(), 'user.id').to.be.equal(7);
   });
 
@@ -97,10 +101,15 @@ describe('Yield Deploy Backend', function() {
       expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
     });
 
-    backend.save(user);
+    var saveCalled = false;
+    backend.save(user, function(error) {
+      saveCalled = true;
+      expect(error).to.not.exist;
+    });
     expect(dispatched, 'dispatch is called').to.be.true;
     expect(published, 'published is called').to.be.true;
     expect(user.id(), 'user.id').to.be.equal(7);
+    expect(saveCalled, 'save callback was called').to.be.true;
   });
 
   it("queries a collection of entities", function() {

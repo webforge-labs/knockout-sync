@@ -27,7 +27,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
     this.driver = driver;
     this.model = entityModel;
 
-    this.save = function(entity) {
+    this.save = function(entity, callback) {
       var method, url;
       var entityMeta = that.model.getEntityMeta(entity.fqn);
 
@@ -56,6 +56,10 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
           amplify.publish('knockout-sync.entity-created', entity, entityMeta);
         } else {
           amplify.publish('knockout-sync.entity-saved', entity, entityMeta);
+        }
+
+        if (callback) {
+          callback.call(error);
         }
       });
     };
