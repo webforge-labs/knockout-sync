@@ -132,6 +132,17 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       return _.toArray(that.entities[meta.plural]());
     };
 
+
+    /*
+     * returns the observable referencing the current collection of all entities fetched with entityFQN
+     * @return ko.observableArray()
+     */
+    this.refAll = function(entityFQN) {
+      var meta = this.getEntityMeta(entityFQN);
+      return that.entities[meta.plural];
+    };
+
+
     this.getKnockoutMappingMetadata = function() {
       var mapping = {};
 
