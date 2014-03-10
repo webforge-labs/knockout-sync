@@ -3,7 +3,6 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
   /**
    Events:
 
-   
    knockout-sync.entity-saved
      triggered when an entity with an existing id was saved again
      args: [entity, entityMeta]
@@ -13,8 +12,10 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
      args: [entity, entityMeta]
  */
 
-  return function Backend(driver, entityModel) {
+  return function Backend(driver, entityModel, prefixUrl) {
     var that = this;
+
+    that.prefixUrl = prefixUrl || '/api/';
 
     if (!entityModel || !(entityModel instanceof EntityModel)) {
       throw new Error('missing parameter #2 for EntityManager. Provide the entity model');
@@ -33,10 +34,10 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
 
       if (entity.id() > 0) {
         method = 'put';
-        url = '/api/'+entityMeta.singular+'/'+entity.id();
+        url = that.prefixUrl+entityMeta.singular+'/'+entity.id();
       } else {
         method = 'post';
-        url = '/api/'+entityMeta.plural;
+        url = that.prefixUrl+entityMeta.plural;
       }
 
       that.driver.dispatch(method, url, that.serializeEntity(entity), function(error, result) {
@@ -70,7 +71,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
     this.cget = function(entityFQN, callback) {
       var entityMeta = that.model.getEntityMeta(entityFQN);
 
-      that.driver.dispatch('GET', '/api/'+entityMeta.plural, undefined, function(error, result) {
+      that.driver.dispatch('GET', that.prefixUrl+entityMeta.plural, undefined, function(error, result) {
         callback(undefined, result);
       });
     };
