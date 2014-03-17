@@ -79,7 +79,7 @@ describe('Yield Deploy Backend', function() {
       expect(error).to.not.exist;
     });
     expect(dispatched, 'dispatch is called').to.be.true;
-    expect(published, 'publishe is called').to.be.true;
+    expect(published, 'publish is called').to.be.true;
     expect(saveCalled, 'save callback was called').to.be.true;
     expect(user.id(), 'user.id').to.be.equal(7);
   });

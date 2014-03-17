@@ -12,10 +12,16 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
      args: [entity, entityMeta]
  */
 
-  return function Backend(driver, entityModel, prefixUrl) {
+  return function Backend(driver, entityModel, options) {
     var that = this;
 
-    that.prefixUrl = prefixUrl || '/api/';
+    var options = _.extend({},
+      {
+        prefixUrl: '/api/',
+        putSingular: true
+      },
+      options
+    );
 
     if (!entityModel || !(entityModel instanceof EntityModel)) {
       throw new Error('missing parameter #2 for EntityManager. Provide the entity model');
@@ -34,10 +40,10 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
 
       if (entity.id() > 0) {
         method = 'put';
-        url = that.prefixUrl+entityMeta.singular+'/'+entity.id();
+        url = options.prefixUrl+(options.putSingular ? entityMeta.singular : entitymeta.plural)+'/'+entity.id();
       } else {
         method = 'post';
-        url = that.prefixUrl+entityMeta.plural;
+        url = options.prefixUrl+entityMeta.plural;
       }
 
       that.driver.dispatch(method, url, that.serializeEntity(entity), function(error, result) {
@@ -71,7 +77,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
     this.cget = function(entityFQN, callback) {
       var entityMeta = that.model.getEntityMeta(entityFQN);
 
-      that.driver.dispatch('GET', that.prefixUrl+entityMeta.plural, undefined, function(error, result) {
+      that.driver.dispatch('GET', options.prefixUrl+entityMeta.plural, undefined, function(error, result) {
         callback(undefined, result);
       });
     };
@@ -89,7 +95,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
         identifiers = [identifiers];
       }
 
-      that.driver.dispatch('GET', that.prefixUrl+entityMeta.plural+'/'+identifiers.join('/'), undefined, function(error, result) {
+      that.driver.dispatch('GET', options.prefixUrl+entityMeta.plural+'/'+identifiers.join('/'), undefined, function(error, result) {
         /* 
           normalize single responses to always use repsonse plural form
 
