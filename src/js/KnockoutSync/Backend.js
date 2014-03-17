@@ -1,4 +1,4 @@
-define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, EntityModel, amplify) {
+define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMapping, EntityModel, amplify, _) {
 
   /**
    Events:
@@ -76,12 +76,59 @@ define(['knockout-mapping', './EntityModel', 'Amplify'], function(koMapping, Ent
       });
     };
 
+    /**
+     * Queries a single entity returned by backend
+     */
+    this.get = function(entityFQN, identifiers, callback) {
+      var entityMeta = that.model.getEntityMeta(entityFQN);
+
+      if (_.isPlainObject(identifiers)) {
+        // maybe map to filter here
+        identifiers = _.values(identifiers);
+      } else if (!_.isArray(identifiers)) { // single scalars
+        identifiers = [identifiers];
+      }
+
+      that.driver.dispatch('GET', that.prefixUrl+entityMeta.plural+'/'+identifiers.join('/'), undefined, function(error, result) {
+        /* 
+          normalize single responses to always use repsonse plural form
+
+          like: 
+          {
+             "page": {
+               "id": 7
+               "slug": "start"
+             }
+          }
+
+          to
+
+          {
+            "pages": [
+              {
+                "id": 7,
+                "slug": "start"
+
+              }
+            ]
+          }
+
+        */
+        if (result[entityMeta.singular] && !result[entityMeta.plural]) {
+          result[entityMeta.plural] = [ result[entityMeta.singular] ];
+          delete result[entityMeta.singular];
+        }
+
+        callback(undefined, result);
+      });
+    };
+
     this.serializeEntity = function(entity) {
       if (typeof(entity.serialize) === 'function') {
         return entity.serialize();
       }
 
       return koMapping.toJS(entity);
-    }
+    };
   };
 });
