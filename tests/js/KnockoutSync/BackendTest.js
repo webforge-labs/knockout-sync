@@ -20,19 +20,25 @@ var AjaxDriver = function() {};
 var amplify = requirejs('Amplify');
 
 describe('Yield Deploy Backend', function() {
-  var backend, driver, model;
+  var backend, driver, model, expectations;
 
   beforeEach(function() {
     model = new EntityModel(jsonModel);
     backend = new Backend(driver = new AjaxDriver(), model);
+    expectations = []
+  });
+
+  afterEach(function() {
+    _.each(expectations, function(expectation) {
+      expectation();
+    });
   });
 
   it("cannot be created without the entity model or the driver", function() {
     expect(function() {
       new Backend();
 
-    }).to.
-    throw (Error, 'Provide the entity model');
+    }).to.throw (Error, 'Provide the entity model');
 
   });
 
@@ -40,48 +46,94 @@ describe('Yield Deploy Backend', function() {
     expect(function() {
       new Backend(undefined, model);
 
-    }).to.
-    throw (Error, 'Provide the driver');
+    }).to.throw (Error, 'Provide the driver');
 
   });
 
-  it("saves a new entity per driver (ajax)", function() {
-    var dispatched = false;
+  var Dispatch = function(properties) {
+    var that = this;
 
+    this.dispatched = false;
+
+    _.extend(that, properties);
+
+    driver.dispatch = function(method, url, data, callback) {
+      that.dispatched = true;
+      expect(method, 'method').to.be.equal(that.method);
+      expect(url, 'url').to.be.equal(that.url);
+      expect(data, 'data').to.be.eql(that.data);
+
+      return that.toDo.call(this, method, url, data, callback);
+    };
+
+    this.wasDispatched = function() {
+      return that.dispatched;
+    };
+  };
+
+  var expectDispatch = function(dispatch) {
+    if (!(dispatch instanceof Dispatch)) {
+      dispatch = new Dispatch(dispatch);
+    }
+
+    expectations.push(function() {
+      expect(dispatch.wasDispatched(), 'driver was dispatched').to.be.true;
+    });
+
+    return dispatch;
+  };
+
+  var expectAmplify = function(topic, withCallback) {
+    var called = false;
+
+    amplify.subscribe(topic, function() {
+      called = true;
+      if (withCallback) {
+        withCallback.apply(this, arguments);
+      }
+    });
+
+    expectations.push(function() {
+      expect(called, 'amplify topic: '+topic+' should have been called').to.be.true;
+    });
+  };
+
+  var expectThat = function(what) {
+    expectations.push(what);
+  };
+
+  it("saves a new entity per driver (ajax)", function(done) {
     var user = new UserModel({
       name: 'Ross',
       email: 'ross@ps-webforge.com',
       id: undefined
     });
 
-    driver.dispatch = function(method, url, data, callback) {
-      dispatched = true;
-      expect(method, 'method').to.be.equal('post');
-      expect(url, 'url').to.be.equal('/api/users');
-      expect(data, 'data').to.be.eql(user.serialize());
+    expectDispatch({
+      method: 'post',
+      url: '/api/users',
+      data: user.serialize(),
+      toDo: function(method, url, data, callback) {
+        data.id = 7;
 
-      data.id = 7;
-
-      callback(undefined, data);
-    };
-
-    var published = false;
-    amplify.subscribe('knockout-sync.entity-created', function(eventEntity, eventEntityMeta) {
-      published = true;
-      expect(eventEntity).to.be.equal(user);
-      expect(eventEntity.id(), 'event user.id').to.be.equal(7);
-      expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+        callback(undefined, data);
+      }
     });
 
-    var saveCalled = false;
+    expectAmplify(
+      'knockout-sync.entity-created',
+      function(eventEntity, eventEntityMeta) {
+        expect(eventEntity).to.be.equal(user);
+        expect(eventEntity.id(), 'event user.id').to.be.equal(7);
+        expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+      }
+    );
+
     backend.save(user, function(error) {
-      saveCalled = true;
       expect(error).to.not.exist;
+      expect(user.id(), 'user.id').to.be.equal(7);
+      done();
     });
-    expect(dispatched, 'dispatch is called').to.be.true;
-    expect(published, 'publish is called').to.be.true;
-    expect(saveCalled, 'save callback was called').to.be.true;
-    expect(user.id(), 'user.id').to.be.equal(7);
   });
 
   it("saves an existing entity per driver (ajax)", function() {
@@ -154,29 +206,6 @@ describe('Yield Deploy Backend', function() {
 
   });
 
-  var DispatchExpectation = function(settings) {
-    var that = this;
-    this.dispatched = false;
-
-    driver.dispatch = function(method, url, data, callback) {
-      that.dispatched = true;
-      expect(method, 'method').to.be.equal(settings.method);
-      expect(url, 'url').to.be.equal(settings.url);
-      expect(data, 'data').to.be.eql(settings.data);
-
-      callback(settings.error, settings.result);
-    };
-
-    this.wasDispatched = function() {
-      expect(that.dispatched, 'driver did dispatch the request').to.be.true;
-
-    };
-
-    this.resultEquals = function(returnedResult) {
-      expect(returnedResult, 'result returned').to.be.eql(settings.normalizedResult || settings.result);
-    };
-  };
-
   var expectDriverToReturnSingleUser = function() {
     var user = new UserModel({
       name: 'Rachel',
@@ -184,37 +213,43 @@ describe('Yield Deploy Backend', function() {
       id: 8
     });
 
-    return new DispatchExpectation({
-      result: {
-        'user': user.serialize()
-      },
-      normalizedResult: {
-        'users': [user.serialize()]
-      },
+    var result = {
+      'user': user.serialize()
+    };
+
+    expectDispatch({
       method: 'GET',
       url: '/api/users/8',
-      data: undefined
+      data: undefined,
+      toDo: function(method, url, data, callback) {
+        callback(undefined, result);
+      }
     });
+
+    return {
+      // user is transformed to users here
+      'users': [user.serialize()]
+    };
   };
 
-  it("queries one of specific entity by single scalar", function() {
-    var expectation = expectDriverToReturnSingleUser();
+  it("queries one specific entity by single scalar", function(done) {
+    var normalizedResult = expectDriverToReturnSingleUser();
 
     backend.get('ACME.Blog.Entities.User', 8, function(error, returnedResult) {
-      expectation.wasDispatched();
       expect(error).to.be.not.existing;
-      expectation.resultEquals(returnedResult);
+      expect(returnedResult).to.be.eql(normalizedResult);
+      done();
     });
 
   });
 
-  it("queries one of specific entity by identifiers object", function() {
-    var expectation = expectDriverToReturnSingleUser();
+  it("queries one specific entity by identifiers object", function(done) {
+    var normalizedResult = expectDriverToReturnSingleUser();
 
     backend.get('ACME.Blog.Entities.User', {id: 8}, function(error, returnedResult) {
-      expectation.wasDispatched();
       expect(error).to.be.not.existing;
-      expectation.resultEquals(returnedResult);
+      expect(returnedResult).to.be.eql(normalizedResult);
+      done();
     });
 
   });

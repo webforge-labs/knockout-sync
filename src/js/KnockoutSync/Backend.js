@@ -40,7 +40,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
 
       if (entity.id() > 0) {
         method = 'put';
-        url = options.prefixUrl+(options.putSingular ? entityMeta.singular : entitymeta.plural)+'/'+entity.id();
+        url = options.prefixUrl+(options.putSingular ? entityMeta.singular : entityMeta.plural)+'/'+entity.id();
       } else {
         method = 'post';
         url = options.prefixUrl+entityMeta.plural;
