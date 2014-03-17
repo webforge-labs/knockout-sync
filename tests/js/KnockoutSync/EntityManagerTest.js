@@ -159,6 +159,25 @@ describe('EntityManager', function() {
         expect(post1).to.have.property('author');
         expect(post1.author(), 'author from post1').to.be.instanceOf(AuthorModel);
       });
+
+      it("applies nested empty entities without error to empty observables (todo: define mapping to what)", function() {
+        var response = {
+          "posts": [{
+            "id": 1,
+            "title": "Working with associations",
+
+            "author": null
+          }]
+        };
+
+        em.mapResponse(response);
+
+        var post1 = em.find('ACME.Blog.Entities.Post', 1);
+
+        expect(post1).to.have.property('author');
+        // to define: empty observable or just null or undefined?
+        expect(post1.author(), 'author from post1').to.be.not.existing;
+      });
     });
   });
 

@@ -28,19 +28,23 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     this.meta = {};
     this.entities = {};
 
-
+    this.isInit = false;
     this.init = function() {
+      if (that.isInit) {
+        throw new Error('dont init the em twice!');
+      }
 
       var firstFakeResponse = {};
 
-      // initialize empty collections
       // the ko.observableArray([]) has not the mapped* functions (like mappedRemove), when it is not mapped yet, so we do the first mapping by hand with empty collections
       _.each(that.model.getEntities(), function(entityMeta) {
         that.meta[entityMeta.fqn] = entityMeta;
         firstFakeResponse[entityMeta.plural] = [];
       });
 
-      this.mapResponse(firstFakeResponse);
+      // initialize all collections with a fully empty response
+      that.mapResponse(firstFakeResponse);
+      that.isInit = true;
     };
 
     /**
@@ -195,6 +199,10 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
 
           mapping[property.name] = {
             create: function(options) {
+              if (!options.data) {
+                return ko.observable(null);
+              }
+
               if (options.data.$type) {
                 var relatedEntity = that.find(propertyEntityMeta.fqn, options.data.$ref);
 
