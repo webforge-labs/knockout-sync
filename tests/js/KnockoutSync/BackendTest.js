@@ -57,6 +57,18 @@ describe('Yield Deploy Backend', function() {
 
     _.extend(that, properties);
 
+    if (that.result) {
+      this.toDo = function(method, url, data, callback) {
+        callback(undefined, that.result);
+      };
+    }
+
+    if (that.error) {
+      this.toDo = function(method, url, data, callback) {
+        callback(that.error);
+      };
+    }
+
     driver.dispatch = function(method, url, data, callback) {
       that.dispatched = true;
       expect(method, 'method').to.be.equal(that.method);
@@ -102,74 +114,99 @@ describe('Yield Deploy Backend', function() {
     expectations.push(what);
   };
 
-  it("saves a new entity per driver (ajax)", function(done) {
-    var user = new UserModel({
-      name: 'Ross',
-      email: 'ross@ps-webforge.com',
-      id: undefined
+  describe('Persistence', function() {
+
+    it("saves a new entity", function(done) {
+      var user = new UserModel({
+        name: 'Ross',
+        email: 'ross@ps-webforge.com',
+        id: undefined
+      });
+
+      expectDispatch({
+        method: 'post',
+        url: '/api/users',
+        data: user.serialize(),
+        toDo: function(method, url, data, callback) {
+          data.id = 7;
+
+          callback(undefined, data);
+        }
+      });
+
+      expectAmplify(
+        'knockout-sync.entity-created',
+        function(eventEntity, eventEntityMeta) {
+          expect(eventEntity).to.be.equal(user);
+          expect(eventEntity.id(), 'event user.id').to.be.equal(7);
+          expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+        }
+        );
+
+      backend.save(user, function(error) {
+        expect(error).to.not.exist;
+        expect(user.id(), 'user.id').to.be.equal(7);
+        done();
+      });
     });
 
-    expectDispatch({
-      method: 'post',
-      url: '/api/users',
-      data: user.serialize(),
-      toDo: function(method, url, data, callback) {
-        data.id = 7;
+    it("saves an existing entity", function(done) {
+      var user = new UserModel({
+        name: 'Ross',
+        email: 'ross@ps-webforge.net',
+        id: 7
+      });
 
-        callback(undefined, data);
-      }
+      expectDispatch({
+        method: 'put',
+        url: '/api/user/7',
+        data: user.serialize(),
+        result: user.serialize()
+      });
+
+      expectAmplify(
+        'knockout-sync.entity-saved',
+        function(eventEntity, eventEntityMeta) {
+          expect(eventEntity).to.be.eql(user);
+          expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+        }
+      );
+
+      backend.save(user, function(error) {
+        expect(error).to.not.exist;
+        expect(user.id(), 'user.id').to.be.equal(7);
+        done();
+      });
     });
 
-    expectAmplify(
-      'knockout-sync.entity-created',
-      function(eventEntity, eventEntityMeta) {
-        expect(eventEntity).to.be.equal(user);
-        expect(eventEntity.id(), 'event user.id').to.be.equal(7);
-        expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
-      }
-    );
+    it("populates the error while saving an entity", function(done) {
+      var user = new UserModel({
+        name: 'Ross',
+        email: 'ross@ps-webforge.net',
+        id: 7
+      });
 
-    backend.save(user, function(error) {
-      expect(error).to.not.exist;
-      expect(user.id(), 'user.id').to.be.equal(7);
-      done();
+      expectDispatch({
+        method: 'put',
+        url: '/api/user/7',
+        data: user.serialize(),
+        result: user.serialize()
+      });
+
+      expectAmplify(
+        'knockout-sync.entity-saved',
+        function(eventEntity, eventEntityMeta) {
+          expect(eventEntity).to.be.eql(user);
+          expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+        }
+      );
+
+      backend.save(user, function(error) {
+        expect(error).to.not.exist;
+        expect(user.id(), 'user.id').to.be.equal(7);
+        done();
+      });
     });
-  });
-
-  it("saves an existing entity per driver (ajax)", function() {
-    var dispatched = false;
-
-    var user = new UserModel({
-      name: 'Ross',
-      email: 'ross@ps-webforge.net',
-      id: 7
-    });
-
-    driver.dispatch = function(method, url, data, callback) {
-      dispatched = true;
-      expect(method, 'method').to.be.equal('put');
-      expect(url, 'url').to.be.equal('/api/user/7');
-      expect(data, 'data').to.be.eql(user.serialize());
-
-      callback(undefined, data);
-    };
-
-    var published = false;
-    amplify.subscribe('knockout-sync.entity-saved', function(eventEntity, eventEntityMeta) {
-      published = true;
-      expect(eventEntity).to.be.eql(user);
-      expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
-    });
-
-    var saveCalled = false;
-    backend.save(user, function(error) {
-      saveCalled = true;
-      expect(error).to.not.exist;
-    });
-    expect(dispatched, 'dispatch is called').to.be.true;
-    expect(published, 'published is called').to.be.true;
-    expect(user.id(), 'user.id').to.be.equal(7);
-    expect(saveCalled, 'save callback was called').to.be.true;
   });
 
   it("queries a collection of entities", function() {
