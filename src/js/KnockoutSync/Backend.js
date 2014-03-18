@@ -162,7 +162,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
 
         } else {
           var failure = {
-            message: 'the server returned an unexpected response code',
+            message: 'the server returned an unexpected response code', // maybe replace this message with the message which is set in response (if it is a correct failure response like validation?)
             expected: successCodes,
             actual: response.code,
             response: response

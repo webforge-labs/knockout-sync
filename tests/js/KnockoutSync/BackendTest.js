@@ -112,6 +112,19 @@ describe('Yield Deploy Backend', function() {
     });
   };
 
+  var expectNoAmplify = function(topic, message) {
+    var called = false, subscriber;
+
+    amplify.subscribe(topic, subscriber = function() {
+      called = true;
+    });
+
+    expectations.push(function() {
+      amplify.unsubscribe(topic, subscriber);
+      expect(called, 'amplify topic: '+topic+' should NOT have been called'+message ? message : '').to.be.false;
+    });
+  };
+
   var expectThat = function(what) {
     expectations.push(what);
   };
@@ -190,7 +203,7 @@ describe('Yield Deploy Backend', function() {
       });
     });
 
-    it("populates the error while saving an entity", function(done) {
+    it("populates the failure returned from the server while saving an entity", function(done) {
       var user = new UserModel({
         name: 'Ross',
         email: 'ross@ps-webforge.net',
@@ -201,20 +214,19 @@ describe('Yield Deploy Backend', function() {
         method: 'put',
         url: '/api/user/7',
         data: user.serialize(),
-        response: response(user.serialize(), 200)
+        response: response({"code":400,"message":"Validation Failed","validation":{"errors":[{"message":"This value should not be blank.","field":{"path":"slug","name":"slug"}}]}}, 400)
       });
 
-      expectAmplify(
-        'knockout-sync.entity-saved',
-        function(eventEntity, eventEntityMeta) {
-          expect(eventEntity).to.be.eql(user);
-          expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
-        }
-      );
+      expectNoAmplify('knockout-sync.entity-saved', 'the entity-saved topic should not be published on error');
 
-      backend.save(user, function(error) {
-        expect(error).to.not.exist;
-        expect(user.id(), 'user.id').to.be.equal(7);
+      backend.save(user, function(failure) {
+        expect(failure).to.exist;
+        expect(failure).to.have.property('response');
+        expect(failure.response).to.have.property('code', 400);
+        expect(failure.response).to.have.property('body').to.be.an.object;
+        expect(failure.response.body).to.have.property('code', 400);
+        expect(failure.response.body).to.have.property('message', "Validation Failed");
+        expect(failure.response.body).to.have.property('validation');
         done();
       });
     });
