@@ -1,3 +1,4 @@
+/* jshint expr: true */
 var chai = require('chai');
 var expect = chai.expect;
 var requirejs = require('requirejs');
@@ -25,7 +26,7 @@ describe('Yield Deploy Backend', function() {
   beforeEach(function() {
     model = new EntityModel(jsonModel);
     backend = new Backend(driver = new AjaxDriver(), model);
-    expectations = []
+    expectations = [];
   });
 
   afterEach(function() {
@@ -57,9 +58,9 @@ describe('Yield Deploy Backend', function() {
 
     _.extend(that, properties);
 
-    if (that.result) {
+    if (that.response) {
       this.toDo = function(method, url, data, callback) {
-        callback(undefined, that.result);
+        callback(undefined, that.response);
       };
     }
 
@@ -96,9 +97,9 @@ describe('Yield Deploy Backend', function() {
   };
 
   var expectAmplify = function(topic, withCallback) {
-    var called = false;
+    var called = false, subscriber;
 
-    amplify.subscribe(topic, function() {
+    amplify.subscribe(topic, subscriber = function() {
       called = true;
       if (withCallback) {
         withCallback.apply(this, arguments);
@@ -106,12 +107,22 @@ describe('Yield Deploy Backend', function() {
     });
 
     expectations.push(function() {
+      amplify.unsubscribe(topic, subscriber); // cleanup, because otherwise expectations from other tests will trigger on the next test
       expect(called, 'amplify topic: '+topic+' should have been called').to.be.true;
     });
   };
 
   var expectThat = function(what) {
     expectations.push(what);
+  };
+
+  var response = function (data, code) {
+    return {
+      body: data,
+      code: code,
+      headers: {} // not needed right now
+      //rawBody: JSON.stringify(data)
+    };
   };
 
   describe('Persistence', function() {
@@ -130,7 +141,7 @@ describe('Yield Deploy Backend', function() {
         toDo: function(method, url, data, callback) {
           data.id = 7;
 
-          callback(undefined, data);
+          callback(undefined, response(data, 201));
         }
       });
 
@@ -161,7 +172,7 @@ describe('Yield Deploy Backend', function() {
         method: 'put',
         url: '/api/user/7',
         data: user.serialize(),
-        result: user.serialize()
+        response: response(user.serialize(), 200)
       });
 
       expectAmplify(
@@ -190,7 +201,7 @@ describe('Yield Deploy Backend', function() {
         method: 'put',
         url: '/api/user/7',
         data: user.serialize(),
-        result: user.serialize()
+        response: response(user.serialize(), 200)
       });
 
       expectAmplify(
@@ -210,8 +221,6 @@ describe('Yield Deploy Backend', function() {
   });
 
   it("queries a collection of entities", function() {
-    var dispatched = false;
-
     var user1 = new UserModel({
       name: 'Ross',
       email: 'ross@ps-webforge.net',
@@ -222,22 +231,20 @@ describe('Yield Deploy Backend', function() {
       email: 'rachel@ps-webforge.net',
       id: 8
     });
-    var result = {
+
+    var result, serverResponse = response(result = {
       'users': [user1.serialize, user2.serialize()]
-    };
+    }, 200);
 
-    driver.dispatch = function(method, url, data, callback) {
-      dispatched = true;
-      expect(method, 'method').to.be.equal('GET');
-      expect(url, 'url').to.be.equal('/api/users');
-      expect(data, 'data').to.be.eql(undefined);
-
-      callback(undefined, result);
-    };
+    expectDispatch({
+      method: 'GET',
+      url: '/api/users',
+      data: undefined,
+      response: serverResponse
+    });
 
     backend.cget('ACME.Blog.Entities.User', function(error, returnedResult) {
       expect(error).to.be.not.existing;
-      expect(dispatched, 'driver did dispatch the request').to.be.true;
       expect(returnedResult, 'result').to.be.equal(result);
     });
 
@@ -258,9 +265,7 @@ describe('Yield Deploy Backend', function() {
       method: 'GET',
       url: '/api/users/8',
       data: undefined,
-      toDo: function(method, url, data, callback) {
-        callback(undefined, result);
-      }
+      response: response(result, 200)
     });
 
     return {

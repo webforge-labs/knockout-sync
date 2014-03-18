@@ -15,7 +15,7 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
   return function Backend(driver, entityModel, options) {
     var that = this;
 
-    var options = _.extend({},
+    that.options = _.extend({},
       {
         prefixUrl: '/api/',
         putSingular: true
@@ -34,40 +34,51 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
     this.driver = driver;
     this.model = entityModel;
 
+    /**
+     * Saves/Creates an entity
+     * 
+     * if the entity.id() is set the entity is updated in the backend
+     * if the entity.id() is not set the entity is created in the backend and the new id is put into the entity
+     *
+     * callback = function(failure)  if the server returns a bad response the response failure is set otherwise its undefined
+     */
     this.save = function(entity, callback) {
-      var method, url;
+      var method, urlPart, successCodes;
       var entityMeta = that.model.getEntityMeta(entity.fqn);
 
       if (entity.id() > 0) {
         method = 'put';
-        url = options.prefixUrl+(options.putSingular ? entityMeta.singular : entityMeta.plural)+'/'+entity.id();
+        urlPart = (that.options.putSingular ? entityMeta.singular : entityMeta.plural)+'/'+entity.id();
+        successCodes = [200, 204]; // or 204 no content
       } else {
         method = 'post';
-        url = options.prefixUrl+entityMeta.plural;
+        urlPart = entityMeta.plural;
+        successCodes = [200, 201]; // 200 or 201 created
       }
 
-      that.driver.dispatch(method, url, that.serializeEntity(entity), function(error, result) {
-        if (error) throw error;
+      that.dispatchRequest(method, urlPart, that.serializeEntity(entity), successCodes, function(failure, result) {
+        if (!failure) {
 
-        var data;
-        if (result.id) {
-          data = result;
-        } else if (result[entityMeta.singular] && result[entityMeta.singular].id) {
-          data = result[entityMeta.singular];
-        } else {
-          throw "driver did returned an valid result set for a saved entity";
+          if (!entity.id()) {
+            var data;
+            if (result.id) {
+              data = result;
+            } else if (result[entityMeta.singular] && result[entityMeta.singular].id) {
+              data = result[entityMeta.singular];
+            } else {
+              throw new Error("driver returned an invalid result set for a created entity "+JSON.stringify(result));
+            }
+
+            // set the new entity id
+            entity.id(data.id);
+
+            amplify.publish('knockout-sync.entity-created', entity, entityMeta);
+          } else {
+            amplify.publish('knockout-sync.entity-saved', entity, entityMeta);
+          }
         }
 
-        if (!entity.id()) { // set persisted id
-          entity.id(result.id);
-          amplify.publish('knockout-sync.entity-created', entity, entityMeta);
-        } else {
-          amplify.publish('knockout-sync.entity-saved', entity, entityMeta);
-        }
-
-        if (callback) {
-          callback.call(error);
-        }
+        callback(failure);
       });
     };
 
@@ -77,8 +88,8 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
     this.cget = function(entityFQN, callback) {
       var entityMeta = that.model.getEntityMeta(entityFQN);
 
-      that.driver.dispatch('GET', options.prefixUrl+entityMeta.plural, undefined, function(error, result) {
-        callback(undefined, result);
+      that.dispatchRequest('GET', entityMeta.plural, undefined, [200], function(failure, result) {
+        callback(failure, result);
       });
     };
 
@@ -95,37 +106,70 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
         identifiers = [identifiers];
       }
 
-      that.driver.dispatch('GET', options.prefixUrl+entityMeta.plural+'/'+identifiers.join('/'), undefined, function(error, result) {
-        /* 
-          normalize single responses to always use repsonse plural form
+      that.dispatchRequest('GET', entityMeta.plural+'/'+identifiers.join('/'), undefined, [200], function(failure, result) {
+        if (!failure) {
+          /* 
+            normalize single responses to always use repsonse plural form
 
-          like: 
-          {
-             "page": {
-               "id": 7
-               "slug": "start"
-             }
+            like: 
+            {
+               "page": {
+                 "id": 7
+                 "slug": "start"
+               }
+            }
+
+            to
+
+            {
+              "pages": [
+                {
+                  "id": 7,
+                  "slug": "start"
+
+                }
+              ]
+            }
+
+          */
+          if (result[entityMeta.singular] && !result[entityMeta.plural]) {
+            result[entityMeta.plural] = [ result[entityMeta.singular] ];
+            delete result[entityMeta.singular];
           }
-
-          to
-
-          {
-            "pages": [
-              {
-                "id": 7,
-                "slug": "start"
-
-              }
-            ]
-          }
-
-        */
-        if (result[entityMeta.singular] && !result[entityMeta.plural]) {
-          result[entityMeta.plural] = [ result[entityMeta.singular] ];
-          delete result[entityMeta.singular];
         }
 
-        callback(undefined, result);
+        callback(failure, result);
+      });
+    };
+
+    /**
+     * Dispatches an request to a server response with the driver
+     * 
+     * if returned response is one of the successCodes the body is converted (json to plain object) and returned directly in the callback
+     * if the returned response is not one of the successCodes the body is tried to be converted and the callback is called with an error including the full server response
+     */
+    this.dispatchRequest = function(method, urlPart, body, successCodes, callback) {
+      var url = that.options.prefixUrl+urlPart;
+
+      that.driver.dispatch(method, url, body, function(error, response) {
+        if (error) { // Maybe we should expand them into a third callback parameter? callback(error, failedResponse, response)
+          throw error;
+        }
+
+        // analyse responses
+        if (_.contains(successCodes, response.code)) {
+          callback(undefined, response.body);
+
+        } else {
+          var failure = {
+            message: 'the server returned an unexpected response code',
+            expected: successCodes,
+            actual: response.code,
+            response: response
+          };
+
+          callback(failure, undefined);
+        }
       });
     };
 
