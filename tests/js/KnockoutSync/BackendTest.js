@@ -203,31 +203,63 @@ describe('Yield Deploy Backend', function() {
       });
     });
 
-    it("populates the failure returned from the server while saving an entity", function(done) {
-      var user = new UserModel({
-        name: 'Ross',
-        email: 'ross@ps-webforge.net',
-        id: 7
+    describe("Failures", function () {
+
+      it("populates the failure returned from the server while saving an entity", function(done) {
+        var user = new UserModel({
+          name: 'Ross',
+          email: 'ross@ps-webforge.net',
+          id: 7
+        });
+
+        expectDispatch({
+          method: 'put',
+          url: '/api/user/7',
+          data: user.serialize(),
+          // it returns a string here as body (because we implement the ajaxDriver as dumb as possible)
+          response: response('{"code":400,"message":"Validation Failed","validation":{"errors":[{"message":"This value should not be blank.","field":{"path":"slug","name":"slug"}}]}}', 400)
+        });
+
+        expectNoAmplify('knockout-sync.entity-saved', 'the entity-saved topic should not be published on error');
+
+        backend.save(user, function(failure) {
+          expect(failure).to.exist;
+          expect(failure).to.have.property('response');
+          expect(failure.response).to.have.property('code', 400);
+          expect(failure.response).to.have.property('body').to.be.an.object;
+          expect(failure.response.body).to.have.property('code', 400);
+          expect(failure.response.body).to.have.property('message', "Validation Failed");
+          expect(failure.response.body).to.have.property('validation');
+          done();
+        });
       });
 
-      expectDispatch({
-        method: 'put',
-        url: '/api/user/7',
-        data: user.serialize(),
-        response: response({"code":400,"message":"Validation Failed","validation":{"errors":[{"message":"This value should not be blank.","field":{"path":"slug","name":"slug"}}]}}, 400)
-      });
+      it("populates the an 500 php failure returned from the server while saving an entity", function(done) {
+        var user = new UserModel({
+          name: 'Ross',
+          email: 'ross@ps-webforge.net',
+          id: 7
+        });
 
-      expectNoAmplify('knockout-sync.entity-saved', 'the entity-saved topic should not be published on error');
+        var msg;
 
-      backend.save(user, function(failure) {
-        expect(failure).to.exist;
-        expect(failure).to.have.property('response');
-        expect(failure.response).to.have.property('code', 400);
-        expect(failure.response).to.have.property('body').to.be.an.object;
-        expect(failure.response.body).to.have.property('code', 400);
-        expect(failure.response.body).to.have.property('message', "Validation Failed");
-        expect(failure.response.body).to.have.property('validation');
-        done();
+        expectDispatch({
+          method: 'put',
+          url: '/api/user/7',
+          data: user.serialize(),
+          // it returns a string here as body (because we implement the ajaxDriver as dumb as possible)
+          response: response(msg = 'Uncaught Exception "something got really bad wrong. Because this is html and not json"', 500)
+        });
+
+        expectNoAmplify('knockout-sync.entity-saved', 'the entity-saved topic should not be published on error');
+
+        backend.save(user, function(failure) {
+          expect(failure).to.exist;
+          expect(failure).to.have.property('response');
+          expect(failure.response).to.have.property('code', 500);
+          expect(failure.response).to.have.property('body', msg);
+          done();
+        });
       });
     });
   });

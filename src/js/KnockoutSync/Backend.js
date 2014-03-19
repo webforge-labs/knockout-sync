@@ -1,4 +1,4 @@
-define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMapping, EntityModel, amplify, _) {
+define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], function(koMapping, EntityModel, amplify, _, undefinedJSON) {
 
   /**
    Events:
@@ -156,6 +156,8 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
           throw error;
         }
 
+        that.tryToConvertBody(response);
+
         // analyse responses
         if (_.contains(successCodes, response.code)) {
           callback(undefined, response.body);
@@ -171,6 +173,17 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash'], function(koMa
           callback(failure, undefined);
         }
       });
+    };
+
+    this.tryToConvertBody = function(response) {
+      if (response.body && _.isString(response.body)) {
+        try {
+          var parsed = JSON.parse(response.body);
+          if (_.isPlainObject(parsed)) {
+            response.body = parsed;
+          }
+        } catch (jsonparserException) {} // i hope this works in older browsers
+      }
     };
 
     this.serializeEntity = function(entity) {

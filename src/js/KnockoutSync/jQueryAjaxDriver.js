@@ -1,5 +1,10 @@
 define(['jquery', 'JSON'], function($, undef) {
 
+  /*
+    notice: response.headers is just a string (seperated with \r\n i think)
+    body can be the already converted response from jquery but it is not converted in alle cases with an error
+  */
+
   return function () {
     var that = this;
 
@@ -11,7 +16,7 @@ define(['jquery', 'JSON'], function($, undef) {
         processData: false,
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(data),
-        success: function (data, jqXHR) {
+        success: function (data, textStatus, jqXHR) {
           var response = that.responseFromXHR(jqXHR, data);
 
           callback(undefined, response);
@@ -26,12 +31,14 @@ define(['jquery', 'JSON'], function($, undef) {
     };
 
     this.responseFromXHR = function(jqXHR, convertedBody) {
-      return {
-        code: jqXHR.statusCode(),
+      var response = {
+        code: jqXHR.status,
         body: convertedBody || jqXHR.responseText,
         rawBody: jqXHR.responseText,
         headers: jqXHR.getAllResponseHeaders()
       };
+
+      return response;
     };
   };
 
