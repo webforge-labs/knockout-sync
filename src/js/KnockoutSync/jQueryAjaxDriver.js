@@ -1,4 +1,4 @@
-define(['jquery', 'JSON'], function($, undef) {
+define(['jquery', 'JSON'], function($) {
 
   /*
     notice: response.headers is just a string (seperated with \r\n i think)
@@ -21,7 +21,7 @@ define(['jquery', 'JSON'], function($, undef) {
 
           callback(undefined, response);
         },
-        error: function(jqXHR, textStatus, errorThrown) {
+        error: function(jqXHR) {
           // are here errors that do not have a jqXHR server response?
           var response = that.responseFromXHR(jqXHR);
 

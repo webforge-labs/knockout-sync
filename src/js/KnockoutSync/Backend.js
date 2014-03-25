@@ -1,4 +1,4 @@
-define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], function(koMapping, EntityModel, amplify, _, undefinedJSON) {
+define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], function(koMapping, EntityModel, amplify, _) {
 
   /**
    Events:
@@ -18,7 +18,8 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
     that.options = _.extend({},
       {
         prefixUrl: '/api/',
-        putSingular: true
+        putSingular: true,
+        removeSingular: true
       },
       options
     );
@@ -140,6 +141,32 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
 
         callback(failure, result);
       });
+    };
+
+    /**
+     * Removes an existing entity
+     * 
+     * if the entity.id() is not set the behaviour is undefined(yet)
+     *
+     * callback = function(failure)  if the server returns a bad response the response failure is set otherwise its undefined
+     */
+    this.remove = function(entity, callback) {
+      if (entity.id() > 0) {
+        var method, urlPart, successCodes;
+        var entityMeta = that.model.getEntityMeta(entity.fqn);
+
+        method = 'delete';
+        urlPart = (that.options.removeSingular ? entityMeta.singular : entityMeta.plural)+'/'+entity.id();
+        successCodes = [200, 204]; // or 204 no content
+
+        that.dispatchRequest(method, urlPart, undefined, successCodes, function(failure) {
+          if (!failure) {
+            amplify.publish('knockout-sync.entity-removed', entity, entityMeta);
+          }
+
+          callback(failure);
+        });
+      }
     };
 
     /**
