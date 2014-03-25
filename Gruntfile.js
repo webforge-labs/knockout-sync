@@ -1,4 +1,4 @@
-/*global module:false, __dirname: true */
+/*global module:false */
 module.exports = function(grunt) {
 
   require('matchdep').filterDev('grunt-*').forEach(grunt.loadNpmTasks);
@@ -104,5 +104,5 @@ module.exports = function(grunt) {
 
   grunt.registerTask('build-dev', ['sweepout']);
   grunt.registerTask('test', ['simplemocha']);
-  grunt.registerTask('default', ['jshint']);
+  grunt.registerTask('default', ['jshint', 'test']);
 };

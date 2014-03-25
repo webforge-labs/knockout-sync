@@ -200,4 +200,13 @@ describe('EntityManager', function() {
 
     expect(em.findAll('ACME.Blog.Entities.User'), 'all users').to.have.length(1);
   });
+
+  it("can detach an object by key", function() {
+    var ross = new UserModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+    em.attach(ross);
+    expect(em.find('ACME.Blog.Entities.User', 7), 'find user 7').to.be.eql(ross);
+
+    em.detach(ross);
+    expect(em.find('ACME.Blog.Entities.User', 7), 'should not find user 7').to.be.null;
+  });
 });
