@@ -262,6 +262,35 @@ describe('Yield Deploy Backend', function() {
         });
       });
     });
+
+    it("removes an existing entity", function(done) {
+      var user = new UserModel({
+        name: 'Ross',
+        email: 'ross@ps-webforge.net',
+        id: 7
+      });
+
+      expectDispatch({
+        method: 'delete',
+        url: '/api/user/7',
+        data: undefined,
+        response: response(undefined, 204)
+      });
+
+      expectAmplify(
+        'knockout-sync.entity-removed',
+        function(eventEntity, eventEntityMeta) {
+          expect(eventEntity).to.be.eql(user);
+          expect(eventEntityMeta.fqn).to.be.eql(user.fqn);
+        }
+      );
+
+      backend.remove(user, function(error) {
+        expect(error).to.not.exist;
+        done();
+      });
+    });
+
   });
 
   it("queries a collection of entities", function() {
