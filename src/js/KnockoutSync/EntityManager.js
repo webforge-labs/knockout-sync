@@ -1,4 +1,4 @@
-define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping', 'Amplify'], function(Exception, EntityModel, _, ko, koMapping, amplify) {
+define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'], function(Exception, EntityModel, _, ko, koMapping) {
 
   /**
 
@@ -242,6 +242,13 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
 
       mappedArray.mappedRemove(entity);
       mappedArray.push(entity);
+    };
+
+    this.detach = function(entity) {
+      var entityMeta = that.getEntityMeta(entity.fqn);
+      var mappedArray = that.entities[entityMeta.plural];
+
+      mappedArray.mappedRemove(entity);
     };
 
     this.init();
