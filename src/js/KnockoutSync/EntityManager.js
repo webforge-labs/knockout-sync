@@ -182,7 +182,14 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     };
 
     this.getEntityMeta = function(entityFQN) {
+      if (!that.meta[entityFQN]) {
+        throw new Error("There is no EntityMeta stored for FQN: '"+entityFQN+"'");
+      }
       return that.meta[entityFQN];
+    };
+
+    this.hasEntityMeta = function(entityFQN) {
+      return !!that.meta[entityFQN];
     };
 
     /**
@@ -194,8 +201,8 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       var mapping = {ignore: []};
 
       _.each(entityMeta.properties, function(property) {
-        if (property.type && that.meta[property.type]) {
-          var propertyEntityMeta = that.meta[property.type];
+        if (property.type && that.hasEntityMeta(property.type)) {
+          var propertyEntityMeta = that.getEntityMeta(property.type);
 
           mapping[property.name] = {
             create: function(options) {
@@ -203,8 +210,10 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
                 return ko.observable(null);
               }
 
+              var fqn = that.getEntityFQNFromData(propertyEntityMeta, options.data);
+
               if (options.data.$type) {
-                var relatedEntity = that.find(propertyEntityMeta.fqn, options.data.$ref);
+                var relatedEntity = that.find(fqn, options.data.$ref);
 
                 if (relatedEntity) {
                   return relatedEntity;
@@ -222,7 +231,7 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
                 }
 
               } else {
-                return that.findOrHydrate(propertyEntityMeta.fqn, options.data);
+                return that.findOrHydrate(fqn, options.data);
               }
             }
           };
@@ -230,6 +239,15 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       });
 
       return mapping;
+    };
+
+    this.getEntityFQNFromData = function(entityMeta, data) {
+      // always trust __class from backend
+      if (data.__class) {
+        return ko.unwrap(data.__class).replace(/\\/g, '.');
+      } else {
+        return entityMeta.fqn;
+      }
     };
 
     this.onHydrate = function(listener) {
