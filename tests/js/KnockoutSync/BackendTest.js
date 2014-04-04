@@ -203,6 +203,26 @@ describe('Yield Deploy Backend', function() {
       });
     });
 
+    it("calls an patch action (with empty body) for an entity", function(done) {
+      var user = new UserModel({
+        name: 'Ross',
+        email: 'ross@ps-webforge.net',
+        id: 8
+      });
+
+      expectDispatch({
+        method: 'patch',
+        url: '/api/user/8/promote',
+        data: undefined,
+        response: response(undefined, 204)
+      });
+
+      backend.patch(user, 'promote', undefined, function(error) {
+        expect(error).to.not.exist;
+        done();
+      });
+    });
+
     describe("Failures", function () {
 
       it("populates the failure returned from the server while saving an entity", function(done) {

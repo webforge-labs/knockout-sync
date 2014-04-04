@@ -83,6 +83,15 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
       });
     };
 
+    this.patch = function(entity, patchName, data, callback) {
+      var entityMeta = that.model.getEntityMeta(entity.fqn);
+      var urlPart = (that.options.putSingular ? entityMeta.singular : entityMeta.plural)+'/'+entity.id()+'/'+patchName;
+
+      this.dispatchRequest('patch', urlPart, data, [200, 204], function (failure, result) {
+        callback(failure, result);
+      });
+    };
+
     /**
      * Queries a collection of all entities returned by backend
      */
