@@ -48,13 +48,41 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     };
 
     /**
-     * Syncs all Entities that are in the response as objects
+     * Syncs all Entities that are in the response as objects with the entities in memory
      *
-     * only Entities defined in mapping data will be synced
      * After that the objects can be retrieved with the find* functions
+     * it removes / adds or updates entities in memory
      */
     this.mapResponse = function(response) {
       koMapping.fromJS(response, that.getKnockoutMappingMetadata(), that.entities);
+    };
+
+    /**
+     * Syncs only the entities in the response with the entities in memory
+     *
+     * it does not remove entities in memory
+     */
+    this.mergeResponse = function(response) {
+      var mappingMeta = that.getKnockoutMappingMetadata();
+
+      _.each(mappingMeta, function(mapping, collectionKey) {
+        if (response[collectionKey] && response[collectionKey].length) {
+          var mappedArray = that.entities[collectionKey];
+          var entityMapping = that.getEntityMapping(mapping.entityMeta);
+
+          _.each(response[collectionKey], function(unmappedEntity) {
+            if (mappedArray.mappedIndexOf(unmappedEntity) !== -1) { // existing entity to update
+              var entity = mappedArray.mappedGet(unmappedEntity);
+
+              // we could call update on entity here (if avaible)
+              koMapping.fromJS(unmappedEntity, entityMapping, entity);
+
+            } else { // new entity to create
+              mappedArray.mappedCreate(unmappedEntity);
+            }
+          });
+        }
+      });
     };
 
     /**
@@ -173,7 +201,9 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
 
           create: function(options) {
             return that.hydrate(entityMeta, options.data);
-          }
+          },
+
+          entityMeta: entityMeta
         };
 
       });

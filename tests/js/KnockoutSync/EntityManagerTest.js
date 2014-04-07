@@ -1,3 +1,4 @@
+/* jshint expr:true */
 var chai = require('chai'),
   expect = chai.expect;
 var requirejs = require('requirejs');
@@ -179,6 +180,47 @@ describe('EntityManager', function() {
         expect(post1.author(), 'author from post1').to.be.not.existing;
       });
     });
+  });
+
+  it("can refresh an entity already fetchecd", function () {
+    var response = {
+      "users": [{
+        "id": 1,
+        "name": "Alice",
+        "email": "alice@ps-webforge.com"
+      }, {
+        "id": 2,
+        "name": "Bob",
+        "email": "bob@ps-webforge.com"
+      }, {
+        "id": 5,
+        "name": "Rachel",
+        "email": "rachel@ps-webforge.com"
+      }]
+    };
+
+    // this puts 3 items into the entityManager
+    em.mapResponse(response);
+
+    // we want to refresh bob
+    var additionalResponse = {
+      "users": [
+        {
+          "id": 2,
+          "name": "Bob B.",
+          "email": "bob@ps-webforge.com"
+        }
+      ]
+    };
+
+    em.mergeResponse(additionalResponse);
+
+    var bob = em.find('ACME.Blog.Entities.User', 2);
+    expect(bob).to.exist;
+    expect(bob.name(),'name from bob should have changed').to.be.eql('Bob B.');
+
+    expect(em.find('ACME.Blog.Entities.User', 1), 'other users should not be detached').to.exist;
+    expect(em.find('ACME.Blog.Entities.User', 5), 'other uses should nto be detached').to.exist;
   });
 
   it("can attach an object by key", function() {
