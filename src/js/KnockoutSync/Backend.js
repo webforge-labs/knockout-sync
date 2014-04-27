@@ -95,10 +95,15 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
     /**
      * Queries a collection of all entities returned by backend
      */
-    this.cget = function(entityFQN, callback) {
+    this.cget = function(entityFQN, params, callback) {
+      if (arguments.length === 2) {
+        callback = params;
+        params = undefined;
+      }
+
       var entityMeta = that.model.getEntityMeta(entityFQN);
 
-      that.dispatchRequest('GET', entityMeta.plural, undefined, [200], function(failure, result) {
+      that.dispatchRequest('GET', entityMeta.plural, params, [200], function(failure, result) {
         callback(failure, result);
       });
     };

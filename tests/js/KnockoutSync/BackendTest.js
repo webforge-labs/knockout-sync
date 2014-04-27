@@ -313,22 +313,24 @@ describe('Yield Deploy Backend', function() {
 
   });
 
+  var user1 = new UserModel({
+    name: 'Ross',
+    email: 'ross@ps-webforge.net',
+    id: 7
+  });
+  var user2 = new UserModel({
+    name: 'Rachel',
+    email: 'rachel@ps-webforge.net',
+    id: 8
+  });
+
+  var result = {
+    'users': [user1.serialize, user2.serialize()]
+  };
+
+  var serverResponse = response(result, 200);
+
   it("queries a collection of entities", function() {
-    var user1 = new UserModel({
-      name: 'Ross',
-      email: 'ross@ps-webforge.net',
-      id: 7
-    });
-    var user2 = new UserModel({
-      name: 'Rachel',
-      email: 'rachel@ps-webforge.net',
-      id: 8
-    });
-
-    var result, serverResponse = response(result = {
-      'users': [user1.serialize, user2.serialize()]
-    }, 200);
-
     expectDispatch({
       method: 'GET',
       url: '/api/users',
@@ -341,6 +343,20 @@ describe('Yield Deploy Backend', function() {
       expect(returnedResult, 'result').to.be.equal(result);
     });
 
+  });
+
+  it("queries a collection of entities with get parameters", function() {
+    expectDispatch({
+      method: 'GET',
+      url: '/api/users',
+      data: {role: "admin"},
+      response: serverResponse
+    });
+
+    backend.cget('ACME.Blog.Entities.User', {role: "admin"}, function(error, returnedResult) {
+      expect(error).to.be.not.existing;
+      expect(returnedResult, 'result').to.be.equal(result);
+    });
   });
 
   var expectDriverToReturnSingleUser = function() {
