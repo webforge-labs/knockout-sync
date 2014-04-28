@@ -9,14 +9,16 @@ define(['jquery', 'JSON'], function($) {
     var that = this;
 
     this.dispatch = function(method, url, data, callback) {
+      method = method.toUpperCase();
+
       /* globals ActiveXObject */
       var params = {
         url: url,
-        type: method.toUpperCase(), // TODO put and delete?
+        type: method,
         dataType: "json",
-        processData: false,
+        processData: method === 'GET',
         contentType: 'application/json; charset=UTF-8',
-        data: JSON.stringify(data),
+        data: method === 'GET' ? data : JSON.stringify(data), // GET data is the query string
         success: function (data, textStatus, jqXHR) {
           var response = that.responseFromXHR(jqXHR, data);
 

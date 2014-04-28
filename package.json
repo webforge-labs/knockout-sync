@@ -27,19 +27,22 @@
   "homepage": "https://github.com/webforge-labs/knockout-sync",
   "devDependencies": {
     "chai": "~1.9.0",
+    "grunt": "~0.4.2",
+    "grunt-contrib-jshint": "~0.9.2",
+    "grunt-release": "~0.6.1",
+    "grunt-shimney-sweeper": "~1.2.3",
     "grunt-simple-mocha": "~0.4.0",
     "lodash": "~2.4.1",
-    "grunt-shimney-sweeper": "~1.2.3",
-    "grunt": "~0.4.2",
     "matchdep": "~0.3.0",
     "requirejs": "~2.1.10",
-    "grunt-release": "~0.6.1",
-    "grunt-contrib-jshint": "~0.9.2"
+    "shimney-jquery": "^1.8.3",
+    "sinon": "^1.9.1"
   },
   "dependencies": {
-    "shimney-lodash": "~2.2.1",
+    "shimney-jquery": "^1.8.3",
+    "shimney-json": "~1.0.0",
     "shimney-knockout": "~3.0.0",
     "shimney-knockout-mapping": "~2.4.1",
-    "shimney-json": "~1.0.0"
+    "shimney-lodash": "~2.2.1"
   }
 }
