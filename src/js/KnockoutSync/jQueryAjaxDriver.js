@@ -50,7 +50,7 @@ define(['jquery', 'JSON'], function($) {
       }
 
       // evil workaround this: https://github.com/assaf/zombie/issues/670
-      if (params.data === undefined && (window.navigator.userAgent) && window.navigator.userAgent.match('Zombie')) {
+      if (params.data === undefined && method !== 'GET' && (window.navigator.userAgent) && window.navigator.userAgent.match('Zombie')) {
         params.data = '{"___empty-zombie-fake-data":"added-from-knockout-sync"}';
       }
 
