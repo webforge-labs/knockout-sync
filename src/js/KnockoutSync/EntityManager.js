@@ -134,6 +134,16 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       return entity;
     };
 
+    this.create = function(entityFQN, data) {
+      var entityMeta = that.getEntityMeta(entityFQN);
+
+      if (!data.id) {
+        data.id = undefined;
+      }
+
+      return that.hydrate(entityMeta, data);
+    };
+
 
     /**
      * Finds an Entity by a filter
