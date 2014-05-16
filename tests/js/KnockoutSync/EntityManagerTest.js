@@ -19,6 +19,8 @@ var Exception = requirejs('KnockoutSync/Exception');
 var EntityModel = requirejs('KnockoutSync/EntityModel');
 var UserModel = requirejs('ACME/Blog/Entities/UserModel');
 var AuthorModel = requirejs('ACME/Blog/Entities/AuthorModel');
+var TagModel = requirejs('ACME/Blog/Entities/TagModel');
+var ko = requirejs('knockout');
 
 describe('EntityManager', function() {
   var em, model;
@@ -179,6 +181,80 @@ describe('EntityManager', function() {
         // to define: empty observable or just null or undefined?
         expect(post1.author(), 'author from post1').to.be.not.existing;
       });
+
+      it("returns null for getting a single mapped result to a single entity", function() {
+        var response = {
+          "posts": []
+        };
+
+        var result = em.getSingleMappedResponse('ACME.Blog.Entities.Post', response);
+
+        expect(result).to.be.null;
+      });
+
+      it("can get a mapped result to a single entity without attaching it", function() {
+        var response = {
+          "posts": [{
+            "id": 1,
+            "title": "Working with associations",
+
+            "author": {
+              "id": 2,
+              "name": "Alice",
+              "email": "alice@ps-webforge.com"
+            },
+
+            "tags": [
+              {
+                label: "doctrine"
+              },
+              {
+                label: "ORM"
+              }
+            ]
+          }]
+        };
+
+        var posts = em.getMappedResponse('ACME.Blog.Entities.Post', response);
+        expect(ko.unwrap(posts)).to.have.length(1);
+
+        var expectPost = function(post) {
+          expect(post).to.have.property('id');
+          expect(post.id()).to.be.equal(1);
+
+          expect(post).to.have.property('author');
+          expect(post.author.id()).to.be.equal(2);
+
+          expect(post).to.have.property('tags');
+          expect(post.tags()).to.have.length(2);
+
+          expect(em.find('ACME.Blog.Entities.Post', 1), 'entity should not be attached from getMappedResponse').to.be.not.ok;
+        };
+
+        expectPost(posts()[0]);
+
+        var post = em.getSingleMappedResponse('ACME.Blog.Entities.Post', response);
+        expectPost(post);
+      });
+
+      it("throws an error in getSingleMappedResponse when more than one root entity is defined", function() {
+        var response = {
+          "posts": [{
+            "id": 1,
+            "title": "Working with associations"
+          }, {
+            "id": 3,
+            "title": "Working with objects",
+          }]
+        };
+
+        var getMapped = function() {
+          em.getSingleMappedResponse('ACME.Blog.Entities.Post', response);
+        };
+
+        expect(getMapped).to.throw('expected response to have only one entity');
+
+      });
     });
   });
 
@@ -250,5 +326,51 @@ describe('EntityManager', function() {
 
     em.detach(ross);
     expect(em.find('ACME.Blog.Entities.User', 7), 'should not find user 7').to.be.null;
+  });
+
+  describe("helps creating new,empty models", function () {
+    before(function () {
+      this.ross = new AuthorModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+      this.rossUser = new UserModel({name: 'Ross', email: 'ross@ps-webforge.net', id: 7});
+    });
+
+    it("creates the id automatically (to be defined: will it throw errors here, because we left some properties?)", function () {
+      var ross = em.create('ACME.Blog.Entities.User', {
+        name: 'Ross'
+      });
+
+      expect(ross).to.have.property('id');
+      expect(ross).to.have.property('name');
+      expect(ross.name()).to.equal('Ross');
+    });
+
+    it("does not map already mapped entities twice in data", function () {
+      var post = em.create('ACME.Blog.Entities.Post', {
+        author: this.ross,
+        "tags": [
+          {
+            label: "doctrine"
+          },
+          {
+            label: "ORM"
+          }
+        ]
+      });
+
+      expect(ko.isObservable(post.author.__ko_mapping__.ignore), 'should not be an double mapped observable').to.be.false;
+    });
+
+    it("finds wrongly passed entities in data", function () {
+      var rossUser = this.rossUser;
+
+      var create = function () {
+        var post = em.create('ACME.Blog.Entities.Post', {
+          author: rossUser,
+        });
+      };
+
+      expect(create).to.throw('observables passed as data for constructor of an entity');
+    });
+
   });
 });

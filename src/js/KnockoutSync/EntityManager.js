@@ -86,6 +86,43 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     };
 
     /**
+     * Returns the chosen Entities (as an observableArray) from the response as a nested result
+     *
+     * does not map into the internal arrays
+     * @return ko.observableArray
+     */
+    this.getMappedResponse = function(rootEntityFQN, response) {
+      var entityMeta = this.getEntityMeta(rootEntityFQN);
+
+      var mappedEntities = {};
+      koMapping.fromJS(response, that.getKnockoutMappingMetadata(), mappedEntities);
+
+      var rootEntities = mappedEntities[entityMeta.plural];
+
+      return rootEntities;
+    };
+
+    /**
+     * Returns one chosen Entity from the response as a nested result
+     *
+     * @return null if none of the rootEntityFQN entities is found in the response
+     */
+    this.getSingleMappedResponse = function(rootEntityFQN, response) {
+      var rootEntitiesArray = that.getMappedResponse(rootEntityFQN, response);
+      var rootEntities = rootEntitiesArray();
+
+      if (!rootEntities.length) {
+        return null;
+      }
+
+      if (rootEntities.length > 1) {
+        throw new Error('expected response to have only one entity of type: '+rootEntityFQN+' but got '+rootEntities.length+'. Cannot getSingleMappedResponse on this response.');
+      }
+
+      return rootEntities[0];
+    };
+
+    /**
      * Finds a Entity by id
      *
      * a mapped instance will be returned if the identifier is found
@@ -174,7 +211,6 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       return _.toArray(that.entities[meta.plural]());
     };
 
-
     /*
      * returns the observable referencing the current collection of all entities fetched with entityFQN
      * @return ko.observableArray()
@@ -241,7 +277,8 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       var mapping = {ignore: []};
 
       _.each(entityMeta.properties, function(property) {
-        if (property.type && that.hasEntityMeta(property.type)) {
+
+        if (that.isRelatedEntity(property)) {
           var propertyEntityMeta = that.getEntityMeta(property.type);
 
           mapping[property.name] = {
@@ -250,10 +287,22 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
                 return ko.observable(null);
               }
 
+              var relatedEntity;
+
+              if (that.isMappedEntity(options.data)) { // dont map already mapped?
+                relatedEntity = options.data;
+
+                if (relatedEntity.fqn !== propertyEntityMeta.fqn) {
+                  throw new Error('observables passed as data for constructor of an entity for property: '+property.name+' should be of type: '+propertyEntityMeta.fqn+' but entity of type: '+relatedEntity.fqn);
+                }
+
+                return relatedEntity;
+              }
+
               var fqn = that.getEntityFQNFromData(propertyEntityMeta, options.data);
 
-              if (options.data.$type) {
-                var relatedEntity = that.find(fqn, options.data.$ref);
+              if (options.data.$type) { // nested ajax type
+                relatedEntity = that.find(fqn, options.data.$ref);
 
                 if (relatedEntity) {
                   return relatedEntity;
@@ -271,6 +320,7 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
                 }
 
               } else {
+                // normal type
                 return that.findOrHydrate(fqn, options.data);
               }
             }
@@ -279,6 +329,14 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       });
 
       return mapping;
+    };
+
+    this.isRelatedEntity = function(property) {
+      return property.type && that.hasEntityMeta(property.type);
+    };
+
+    this.isMappedEntity = function(entity) {
+      return _.isObject(entity) && ko.isObservable(entity.id) && entity.fqn;
     };
 
     this.getEntityFQNFromData = function(entityMeta, data) {
