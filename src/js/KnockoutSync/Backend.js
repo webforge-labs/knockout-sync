@@ -208,7 +208,12 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
             message: 'the server returned an unexpected response code', // maybe replace this message with the message which is set in response (if it is a correct failure response like validation?)
             expected: successCodes,
             actual: response.code,
-            response: response
+            response: response,
+            request: {
+              method: method,
+              url: urlPart,
+              body: that.debugBody(body)
+            }
           };
 
           callback(failure, undefined);
@@ -225,6 +230,20 @@ define(['knockout-mapping', './EntityModel', 'Amplify', 'lodash', 'JSON'], funct
           }
         } catch (jsonparserException) {} // i hope this works in older browsers
       }
+    };
+
+    this.debugBody = function(body) {
+      if (body === undefined) return '<empty>';
+
+      if (_.isString(body)) {
+        if (body.length > 100) {
+          return body.substr(0, 100);
+        } else {
+          return body;
+        }
+      }
+
+      return '<body not converted to string>';
     };
 
     this.serializeEntity = function(entity) {
