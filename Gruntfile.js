@@ -104,5 +104,5 @@ module.exports = function(grunt) {
 
   grunt.registerTask('build-dev', ['sweepout']);
   grunt.registerTask('test', ['simplemocha']);
-  grunt.registerTask('default', ['jshint', 'test']);
+  grunt.registerTask('travis', ['jshint', 'test']);
 };
