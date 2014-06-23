@@ -332,7 +332,7 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
     };
 
     this.isRelatedEntity = function(property) {
-      return property.type && that.hasEntityMeta(property.type);
+      return property.type && that.hasEntityMeta(property.type) && !property.isCollection;
     };
 
     this.isMappedEntity = function(entity) {
