@@ -21,11 +21,13 @@
   
       "properties": {
         "id": { "type": "DefaultId" },
+        "content": { "type": "MarkupText" },
         "author": { "type": "Author" },
         "revisor": { "type": "Author", "nullable": true },
-        "categories": { "type": "Collection<Category>", "isOwning": true },
+        "categories": { "type": "Collection<Category>", "isOwning": true, "cascade": ["persist", "remove"] },
         "tags": { "type": "Collection<Tag>" },
         "active": { "type": "Boolean" },
+        "relevance": { "type": "Float", "nullable": true },
         "created": { "type": "DateTime" },
         "modified": { "type": "DateTime", "nullable": true }
       },
@@ -64,16 +66,17 @@
       "constructor": ["label"]
     },
 
-
     {
-      "name": "ContentStream\\Paragraph",
+      "name": "Page",
     
       "properties": {
         "id": { "type": "DefaultId" },
-        "content": { "type": "String" }
+        "slug": { "type": "String" },
+
+        "contentStreams": { "type": "Collection<ContentStream\\Entry>" }
       },
 
-      "constructor": ["content"]
+      "constructor": ["slug"]
     },
 
     {
@@ -82,10 +85,43 @@
       "properties": {
         "id": { "type": "DefaultId" },
         
-        "paragraphs": { "type": "Collection<ContentStream\\Paragraph>" }
+        "entries": { "type": "Collection<ContentStream\\Entry>" },
+        "page": { "type": "Page", "nullable": true, "onDelete": "cascade" }
       },
 
       "constructor": []
+    },
+
+    {
+      "name": "ContentStream\\Entry",
+
+      "properties": {
+        "id": { "type": "DefaultId" },
+
+        "contentStream": { "type": "ContentStream\\Stream" }
+      }
+    },
+
+    {
+      "name": "ContentStream\\Paragraph",
+      "extends": "ContentStream\\Entry",
+    
+      "properties": {
+        "content": { "type": "String" }
+      },
+
+      "constructor": ["content"]
+    },
+
+    {
+      "name": "ContentStream\\TextBlock",
+      "extends": "ContentStream\\Entry",
+
+      "properties": {
+        "paragraph1": { "type": "ContentStream\\Paragraph", "relation": "ManyToOne" },
+        "paragraph2": { "type": "ContentStream\\Paragraph" }
+      }
     }
+
   ]
 }

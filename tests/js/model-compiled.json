@@ -33,25 +33,37 @@
           "name":"id",
           "type":"Id"
         },
+        "content":{
+          "name":"content",
+          "type":"MarkupText"
+        },
         "author":{
           "name":"author",
-          "type":"ACME\\Blog\\Entities\\Author"
+          "type":"ACME\\Blog\\Entities\\Author",
+          "isCollection":false
         },
         "revisor":{
           "name":"revisor",
-          "type":"ACME\\Blog\\Entities\\Author"
+          "type":"ACME\\Blog\\Entities\\Author",
+          "isCollection":false
         },
         "categories":{
           "name":"categories",
-          "type":"ACME\\Blog\\Entities\\Category"
+          "type":"ACME\\Blog\\Entities\\Category",
+          "isCollection":true
         },
         "tags":{
           "name":"tags",
-          "type":"ACME\\Blog\\Entities\\Tag"
+          "type":"ACME\\Blog\\Entities\\Tag",
+          "isCollection":true
         },
         "active":{
           "name":"active",
           "type":"Boolean"
+        },
+        "relevance":{
+          "name":"relevance",
+          "type":"Float"
         },
         "created":{
           "name":"created",
@@ -74,11 +86,13 @@
       "properties":{
         "writtenPosts":{
           "name":"writtenPosts",
-          "type":"ACME\\Blog\\Entities\\Post"
+          "type":"ACME\\Blog\\Entities\\Post",
+          "isCollection":true
         },
         "revisionedPosts":{
           "name":"revisionedPosts",
-          "type":"ACME\\Blog\\Entities\\Post"
+          "type":"ACME\\Blog\\Entities\\Post",
+          "isCollection":true
         }
       }
     },
@@ -97,7 +111,8 @@
         },
         "posts":{
           "name":"posts",
-          "type":"ACME\\Blog\\Entities\\Post"
+          "type":"ACME\\Blog\\Entities\\Post",
+          "isCollection":true
         }
       }
     },
@@ -121,11 +136,11 @@
       }
     },
     {
-      "name":"ContentStream\\Paragraph",
-      "fqn":"ACME\\Blog\\Entities\\ContentStream\\Paragraph",
-      "singular":"content-stream_paragraph",
-      "plural":"content-stream_paragraphs",
-      "tableName":"content_stream_paragraphs",
+      "name":"Page",
+      "fqn":"ACME\\Blog\\Entities\\Page",
+      "singular":"page",
+      "plural":"pages",
+      "tableName":"pages",
       "extends":null,
       "description":null,
       "properties":{
@@ -133,9 +148,14 @@
           "name":"id",
           "type":"Id"
         },
-        "content":{
-          "name":"content",
+        "slug":{
+          "name":"slug",
           "type":"String"
+        },
+        "contentStreams":{
+          "name":"contentStreams",
+          "type":"ACME\\Blog\\Entities\\ContentStream\\Entry",
+          "isCollection":true
         }
       }
     },
@@ -152,9 +172,71 @@
           "name":"id",
           "type":"Id"
         },
-        "paragraphs":{
-          "name":"paragraphs",
-          "type":"ACME\\Blog\\Entities\\ContentStream\\Paragraph"
+        "entries":{
+          "name":"entries",
+          "type":"ACME\\Blog\\Entities\\ContentStream\\Entry",
+          "isCollection":true
+        },
+        "page":{
+          "name":"page",
+          "type":"ACME\\Blog\\Entities\\Page",
+          "isCollection":false
+        }
+      }
+    },
+    {
+      "name":"ContentStream\\Entry",
+      "fqn":"ACME\\Blog\\Entities\\ContentStream\\Entry",
+      "singular":"content-stream_entry",
+      "plural":"content-stream_entries",
+      "tableName":"content_stream_entries",
+      "extends":null,
+      "description":null,
+      "properties":{
+        "id":{
+          "name":"id",
+          "type":"Id"
+        },
+        "contentStream":{
+          "name":"contentStream",
+          "type":"ACME\\Blog\\Entities\\ContentStream\\Stream",
+          "isCollection":false
+        }
+      }
+    },
+    {
+      "name":"ContentStream\\Paragraph",
+      "fqn":"ACME\\Blog\\Entities\\ContentStream\\Paragraph",
+      "singular":"content-stream_paragraph",
+      "plural":"content-stream_paragraphs",
+      "tableName":"content_stream_paragraphs",
+      "extends":"ACME\\Blog\\Entities\\ContentStream\\Entry",
+      "description":null,
+      "properties":{
+        "content":{
+          "name":"content",
+          "type":"String"
+        }
+      }
+    },
+    {
+      "name":"ContentStream\\TextBlock",
+      "fqn":"ACME\\Blog\\Entities\\ContentStream\\TextBlock",
+      "singular":"content-stream_text-block",
+      "plural":"content-stream_text-blocks",
+      "tableName":"content_stream_text_blocks",
+      "extends":"ACME\\Blog\\Entities\\ContentStream\\Entry",
+      "description":null,
+      "properties":{
+        "paragraph1":{
+          "name":"paragraph1",
+          "type":"ACME\\Blog\\Entities\\ContentStream\\Paragraph",
+          "isCollection":false
+        },
+        "paragraph2":{
+          "name":"paragraph2",
+          "type":"ACME\\Blog\\Entities\\ContentStream\\Paragraph",
+          "isCollection":false
         }
       }
     }
