@@ -103,6 +103,7 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('build-dev', ['sweepout']);
+  grunt.registerTask('build', ['sweepout', 'requirejs']);
   grunt.registerTask('test', ['simplemocha']);
-  grunt.registerTask('travis', ['jshint', 'test']);
+  grunt.registerTask('travis', ['build-dev', 'jshint', 'test']);
 };
