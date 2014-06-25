@@ -19,6 +19,7 @@ var Exception = requirejs('KnockoutSync/Exception');
 var EntityModel = requirejs('KnockoutSync/EntityModel');
 var UserModel = requirejs('ACME/Blog/Entities/UserModel');
 var AuthorModel = requirejs('ACME/Blog/Entities/AuthorModel');
+var PostModel = requirejs('ACME/Blog/Entities/PostModel');
 var TagModel = requirejs('ACME/Blog/Entities/TagModel');
 var ko = requirejs('knockout');
 
@@ -192,7 +193,69 @@ describe('EntityManager', function() {
         expect(result).to.be.null;
       });
 
+      var postWithTagsResponse = {
+        "posts": [{
+          "id": 1,
+          "title": "Working with associations",
+
+          "author": {
+            "id": 2,
+            "name": "Alice",
+            "email": "alice@ps-webforge.com"
+          },
+
+          "tags": [
+            {
+              label: "doctrine"
+            },
+            {
+              label: "ORM"
+            }
+          ]
+        }]
+      };
+
       it("can get a mapped result to a single entity without attaching it", function() {
+        var posts = em.getMappedResponse('ACME.Blog.Entities.Post', postWithTagsResponse);
+        expect(ko.unwrap(posts)).to.have.length(1);
+
+        var expectPost = function(post) {
+          expect(post).to.have.property('id');
+          expect(post.id()).to.be.equal(1);
+
+          expect(post).to.have.property('author');
+          expect(post.author).to.be.an.instanceOf(AuthorModel);
+          expect(post.author.id()).to.be.equal(2);
+
+          expect(post).to.have.property('tags');
+
+          expect(ko.isObservable(post.tags) && post.tags.indexOf !== undefined, 'post.tags should be an observable array').to.be.ok;
+          expect(post.tags()).to.have.length(2);
+
+          expect(em.find('ACME.Blog.Entities.Post', 1), 'entity should not be attached from getMappedResponse').to.be.not.ok;
+        };
+
+        expectPost(posts()[0]);
+
+        var post = em.getSingleMappedResponse('ACME.Blog.Entities.Post', postWithTagsResponse);
+        expectPost(post);
+      });
+
+      it("maps entity collections of an entity to a collection of entities", function() {
+        var posts = em.getMappedResponse('ACME.Blog.Entities.Post', postWithTagsResponse);
+        expect(ko.unwrap(posts)).to.have.length(1);
+
+        var post = posts()[0];
+
+        expect(post).to.have.property('tags');
+        expect(ko.isObservable(post.tags) && post.tags.indexOf !== undefined, 'post.tags should be an observable array').to.be.ok;
+
+        var tag = post.tags()[0];
+
+        expect(tag, 'tag should be an entity of ACME.Blog.Entities.Tag').to.be.instanceOf(TagModel);
+      });
+
+      it.skip("do map carefully too nested responses", function() {
         var response = {
           "posts": [{
             "id": 1,
@@ -201,7 +264,23 @@ describe('EntityManager', function() {
             "author": {
               "id": 2,
               "name": "Alice",
-              "email": "alice@ps-webforge.com"
+              "email": "alice@ps-webforge.com",
+
+              "posts": [{
+                "id": 1,
+                "title": "Working with associations",
+
+                "author": null,
+
+                "tags": [
+                  {
+                    label: "doctrine"
+                  },
+                  {
+                    label: "ORM"
+                  }
+                ]
+              }]
             },
 
             "tags": [
@@ -218,24 +297,21 @@ describe('EntityManager', function() {
         var posts = em.getMappedResponse('ACME.Blog.Entities.Post', response);
         expect(ko.unwrap(posts)).to.have.length(1);
 
-        var expectPost = function(post) {
-          expect(post).to.have.property('id');
-          expect(post.id()).to.be.equal(1);
+        var post = posts()[0];
 
-          expect(post).to.have.property('author');
-          expect(post.author.id()).to.be.equal(2);
+        expect(post).to.have.property('author');
+        expect(post.author).to.be.an.instanceOf(AuthorModel);
 
-          expect(post).to.have.property('tags');
-          expect(post.tags()).to.have.length(2);
+        expect(post.author).to.have.property('posts');
 
-          expect(em.find('ACME.Blog.Entities.Post', 1), 'entity should not be attached from getMappedResponse').to.be.not.ok;
-        };
+        var nestedPosts = post.author.posts;
+        expect(ko.isObservable(nestedPosts) && nestedPosts.indexOf !== undefined, 'post[0].author.posts should be an observable array').to.be.ok;
 
-        expectPost(posts()[0]);
+        var nestedPost = nestedPosts()[0];
 
-        var post = em.getSingleMappedResponse('ACME.Blog.Entities.Post', response);
-        expectPost(post);
+        expect(nestedPost).to.be.an.instanceOf(PostModel);
       });
+
 
       it("throws an error in getSingleMappedResponse when more than one root entity is defined", function() {
         var response = {

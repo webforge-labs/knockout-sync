@@ -277,9 +277,10 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
       var mapping = {ignore: []};
 
       _.each(entityMeta.properties, function(property) {
+        var propertyEntityMeta;
 
         if (that.isRelatedEntity(property)) {
-          var propertyEntityMeta = that.getEntityMeta(property.type);
+          propertyEntityMeta = that.getEntityMeta(property.type);
 
           mapping[property.name] = {
             create: function(options) {
@@ -325,6 +326,16 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
               }
             }
           };
+        } else if (that.isRelatedEntityCollection(property)) {
+          propertyEntityMeta = that.getEntityMeta(property.type);
+
+          mapping[property.name] = {
+            create: function(options) {
+              var fqn = that.getEntityFQNFromData(propertyEntityMeta, options.data); // this will always return propertyEntityMeta.fqn per default
+
+              return that.findOrHydrate(fqn, options.data);
+            }
+          };
         }
       });
 
@@ -333,6 +344,10 @@ define(['./Exception', './EntityModel', 'lodash', 'knockout', 'knockout-mapping'
 
     this.isRelatedEntity = function(property) {
       return property.type && that.hasEntityMeta(property.type) && !property.isCollection;
+    };
+
+    this.isRelatedEntityCollection = function(property) {
+      return property.type && that.hasEntityMeta(property.type) && property.isCollection;
     };
 
     this.isMappedEntity = function(entity) {
