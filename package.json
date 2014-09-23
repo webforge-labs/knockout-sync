@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "shimney-lodash": "~2.2.1",
-    "shimney-knockout": "~3.0.0",
+    "shimney-knockout": "~3.1.0",
     "shimney-knockout-mapping": "~2.4.1",
     "shimney-json": "~1.0.0"
   }
